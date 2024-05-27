@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "serverless-apigateway-log-retention": "^1.1.0",
+    "serverless-better-credentials": "^2.0.0",
+    "serverless-plugin-log-retention": "^2.0.0",
+    "serverless-stack-output": "^0.2.3"
+  }
+}

@@ -1,0 +1,10 @@
+userAuthorizer:
+  handler: UserAuthorizer::UserAuthorizer.Function::FunctionHandler
+  maximumRetryAttempts: 0
+  memorySize: 128
+  timeout: 180
+  # role has been moved to serverless.yml
+  package:
+    artifact: ../userAuthorizer.zip
+  environment:
+    testVariable: "Test variable value"

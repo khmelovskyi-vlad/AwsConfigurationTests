@@ -1,0 +1,10 @@
+configurationTests:
+  handler: ConfigurationTests::ConfigurationTests.Function::FunctionHandler
+  maximumRetryAttempts: 0
+  memorySize: 128
+  timeout: 180
+  # role has been moved to serverless.yml
+  package:
+    artifact: ../configurationTests.zip
+  environment:
+    testVariable: "Test variable value"

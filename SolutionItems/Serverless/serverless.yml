@@ -1,0 +1,31 @@
+service: Vlad-Tests
+frameworkVersion: '3.*'
+provider:
+  name: aws
+  apiName: Vlad-Tests-${self:provider.stage}
+  architecture: arm64
+  runtime: dotnet6
+  versionFunctions: false
+  # get stage from options, default to dev
+  stage: ${opt:stage, 'dev'}
+  # get region from options, default to Frankfurt
+  region: ${opt:region, 'eu-central-1'}
+  # ApiGateway timeout - max 30 seconds
+  timeout: 30
+package:
+  individually: true
+
+custom: ${file(./customsFile.yaml)}
+
+functions:
+  - ${file(../Functions/ConfigurationTests.yaml)}
+  - ${file(../Functions/UserAuthorizer.yaml)}
+
+resources:
+  - ${file(../Api/rest-api.yaml)}
+
+plugins:
+  - serverless-better-credentials
+  - serverless-stack-output
+  - serverless-plugin-log-retention
+  - serverless-apigateway-log-retention

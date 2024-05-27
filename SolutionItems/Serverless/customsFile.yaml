@@ -1,0 +1,19 @@
+env: ${self:custom.env_enabled.${self:provider.stage}, self:custom.env_enabled.other}
+env_enabled:
+  # live environment
+  prod: "prod"
+  # staging environment
+  staging: "staging"
+  # qa environment
+  qa: "qa"
+  # trade portal POC environment
+  tradep: "tradep"
+  # dev environment
+  dev: "dev"
+  # swat environment
+  swat: "dev"
+  # other
+  other: "dev"
+
+output:
+  handler: ../Api/stage_deployment.handler

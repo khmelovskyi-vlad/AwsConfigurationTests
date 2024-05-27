@@ -1,0 +1,82 @@
+Resources:
+  # general API definition
+  VladTests:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: Vlad-Tests-${self:provider.stage}
+      # must be an open api 3.0.2 definition in yaml format
+      Body: ${file(../Api/Vlad-Tests.yaml)}
+      # set to true later when custom domain is used in order to deactivate the defautl url
+      DisableExecuteApiEndpoint: true
+      EndpointConfiguration:
+        Types:
+        - REGIONAL
+    DependsOn: [VladTestsRole]
+
+  # ApiGateway role definition
+  VladTestsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: VladTestsRole-${self:provider.stage}
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: VladTestsPolicy-${self:provider.stage}
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource:
+                  - "Fn::GetAtt": [ConfigurationTestsLambdaFunction, Arn]
+                  - "Fn::GetAtt": [UserAuthorizerLambdaFunction, Arn]
+  
+  VladTestsStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      AccessLogSetting:
+        DestinationArn: !GetAtt VladTestsAccessLogGroup.Arn
+        Format: "{ \"requestId\":\"$context.requestId\", \"ip\": \"$context.identity.sourceIp\", \"caller\":\"$context.identity.caller\", \"user\":\"$context.identity.user\",\"requestTime\":\"$context.requestTime\", \"httpMethod\":\"$context.httpMethod\",\"resourcePath\":\"$context.resourcePath\", \"status\":\"$context.status\",\"protocol\":\"$context.protocol\", \"responseLength\":\"$context.responseLength\" }"
+      MethodSettings:
+        - DataTraceEnabled: false
+          HttpMethod: "POST"
+          LoggingLevel: "ERROR"
+          ResourcePath: "/~1api~1v1~1exports"
+          MetricsEnabled: false
+      StageName: ${self:provider.stage}
+      Description: VladTests stage
+      RestApiId: !Ref VladTests
+      DeploymentId: !Ref VladTestsDeployment15
+    DependsOn: [VladTestsAccessLogGroup]
+
+  VladTestsDeployment15:
+    Type: "AWS::ApiGateway::Deployment"
+    Properties:
+      RestApiId: !Ref VladTests
+      Description: VladTests deployment
+
+  VladTestsAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: 
+        Fn::Join:
+          - ""
+          - - API-Gateway-Access-Logs-VladTests_
+            - !Ref VladTests
+            - /${self:provider.stage}    
+      RetentioninDays: 7
+
+Outputs:
+  RestApiId:
+    Value: !Ref VladTests
+  Region:
+    Value: ${self:provider.region}
+  StageName:
+    Value: !Ref VladTestsStage

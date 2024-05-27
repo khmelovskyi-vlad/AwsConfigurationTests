@@ -1,0 +1,146 @@
+openapi: 3.0.2
+info:
+    title: Vlad-Tests
+    version: 1.0.0
+    description: Api description
+    contact:
+        name: Vlad name
+        url: 'https://www.vlad.com'
+        email: vlad@gmail.com
+paths:
+    /configuration-tests/{input}:
+        summary: Configuration tests
+        description: Configuration tests desc
+        get:
+            parameters:
+                -
+                    name: input
+                    description: Input desc
+                    schema:
+                        type: string
+                    in: path
+            responses:
+                '200':
+                    $ref: '#/components/responses/ConfigurationTestsResponse'
+            security:
+                -
+                    UserLambdaAuthorizer: []
+            x-amazon-apigateway-integration:
+                uri:
+                    'Fn::Join':
+                        - ''
+                        -
+                            - 'arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/'
+                            -
+                                'Fn::GetAtt':
+                                    - ConfigurationTestsLambdaFunction
+                                    - Arn
+                            - /invocations
+                passthroughBehavior: when_no_match
+                credentials:
+                    'Fn::GetAtt':
+                        - VladTestsRole
+                        - Arn
+                httpMethod: POST
+                type: aws_proxy
+        options:
+            parameters:
+                -
+                    name: origin
+                    description: ''
+                    schema:
+                        type: string
+                    in: header
+            responses:
+                '200':
+                    headers:
+                        Access-Control-Allow-Origin:
+                            schema:
+                                type: string
+                        Access-Control-Allow-Methods:
+                            schema:
+                                type: string
+                        Access-Control-Allow-Headers:
+                            schema:
+                                type: string
+                        Access-Control-Allow-Credentials:
+                            schema:
+                                type: boolean
+                    description: Default response for CORS method
+            summary: CORS preflight request
+            description: The OPTIONS method invoked in a CORS preflight request
+            x-amazon-apigateway-integration:
+                type: mock
+                passthroughBehavior: never
+                requestTemplates:
+                    application/json: |
+                        {
+                          "statusCode" : 200
+                        }
+                responses:
+                    default:
+                        statusCode: '200'
+                        responseParameters:
+                            method.response.header.Access-Control-Allow-Methods: '''GET, OPTIONS'''
+                            method.response.header.Access-Control-Allow-Credentials: '''true'''
+                        responseTemplates:
+                            application/json: |
+                                {}
+        
+components:
+    schemas:
+        ConfigurationTestsResponseModel:
+            description: Configuration tests response model
+            required:
+                - Result
+            type: object
+            properties:
+                Result:
+                    description: Result
+                    type: string
+    responses:
+        ConfigurationTestsResponse:
+            content:
+                application/json:
+                    schema:
+                        $ref: '#/components/schemas/ConfigurationTestsResponseModel'
+                    examples:
+                        ExportResponse example:
+                            value:
+                                result: "Configuration tests response result"
+            description: The response to a successful export
+            
+    securitySchemes:
+        UserLambdaAuthorizer:
+            type: apiKey
+            description: auth desc
+            name: Authorization
+            in: header
+            x-amazon-apigateway-authtype: oauth2
+            x-amazon-apigateway-authorizer:
+                type: token
+                authorizerUri:
+                    'Fn::Join':
+                        - ''
+                        -
+                            - 'arn:aws:apigateway:${self:provider.region}:lambda:path/2015-03-31/functions/'
+                            -
+                                'Fn::GetAtt':
+                                    - UserAuthorizerLambdaFunction
+                                    - Arn
+                            - /invocations
+                authorizerCredentials:
+                    'Fn::GetAtt':
+                        - VladTestsRole
+                        - Arn
+                identityValidationExpression: '^(Bearer )[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.([a-zA-Z0-9\-_]+)$'
+                authorizerResultTtlInSeconds: 120
+
+
+x-amazon-apigateway-request-validators:
+    parameter:
+        validateRequestBody: false
+        validateRequestParameters: false
+    body:
+        validateRequestBody: true
+        validateRequestParameters: false

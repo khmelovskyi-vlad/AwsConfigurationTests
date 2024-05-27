@@ -1,0 +1,624 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                },
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      }
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ConfigurationTestsLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/Vlad-Tests-vkh-configurationTests"
+      }
+    },
+    "UserAuthorizerLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/Vlad-Tests-vkh-userAuthorizer"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "Vlad-Tests",
+                  "vkh",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup",
+                    "logs:TagResource"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/Vlad-Tests-vkh*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/Vlad-Tests-vkh*:*:*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "Vlad-Tests",
+              "vkh",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "ConfigurationTestsLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/Vlad-Tests/vkh/1716809991308-2024-05-27T11:39:51.308Z/../configurationTests.zip"
+        },
+        "Handler": "ConfigurationTests::ConfigurationTests.Function::FunctionHandler",
+        "Runtime": "dotnet6",
+        "FunctionName": "Vlad-Tests-vkh-configurationTests",
+        "MemorySize": 128,
+        "Timeout": 180,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "testVariable": "Test variable value"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ConfigurationTestsLogGroup"
+      ]
+    },
+    "ConfigurationTestsLambdaEvConf": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ConfigurationTestsLambdaFunction"
+        },
+        "DestinationConfig": {},
+        "Qualifier": "$LATEST",
+        "MaximumRetryAttempts": 0
+      }
+    },
+    "UserAuthorizerLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/Vlad-Tests/vkh/1716809991308-2024-05-27T11:39:51.308Z/../userAuthorizer.zip"
+        },
+        "Handler": "UserAuthorizer::UserAuthorizer.Function::FunctionHandler",
+        "Runtime": "dotnet6",
+        "FunctionName": "Vlad-Tests-vkh-userAuthorizer",
+        "MemorySize": 128,
+        "Timeout": 180,
+        "Architectures": [
+          "arm64"
+        ],
+        "Environment": {
+          "Variables": {
+            "testVariable": "Test variable value"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "UserAuthorizerLogGroup"
+      ]
+    },
+    "UserAuthorizerLambdaEvConf": {
+      "Type": "AWS::Lambda::EventInvokeConfig",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "UserAuthorizerLambdaFunction"
+        },
+        "DestinationConfig": {},
+        "Qualifier": "$LATEST",
+        "MaximumRetryAttempts": 0
+      }
+    },
+    "VladTests": {
+      "Type": "AWS::ApiGateway::RestApi",
+      "Properties": {
+        "Name": "Vlad-Tests-vkh",
+        "Body": {
+          "openapi": "3.0.2",
+          "info": {
+            "title": "Vlad-Tests",
+            "version": "1.0.0",
+            "description": "TecCom price and availability server API for buyers",
+            "contact": {
+              "name": "TecAlliance GmbH",
+              "url": "https://www.tecalliance.net",
+              "email": "info@tecalliance.net"
+            }
+          },
+          "servers": [
+            {
+              "url": "https://api.tbc.tecalliance.net/v1/buyers/vlad-tests",
+              "description": "Productive environment"
+            },
+            {
+              "url": "https://api.tbc.staging.tecalliance.cloud/v1/buyers/vlad-tests",
+              "description": "Staging environment"
+            },
+            {
+              "url": "https://api.tbc.qa.tecalliance.cloud/v1/buyers/qa/vlad-tests",
+              "description": "QA environment"
+            }
+          ],
+          "paths": {
+            "/configuration-tests/{input}": {
+              "summary": "Configuration tests",
+              "description": "Configuration tests desc",
+              "get": {
+                "parameters": [
+                  {
+                    "name": "input",
+                    "description": "Input desc",
+                    "schema": {
+                      "type": "string"
+                    },
+                    "in": "path"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "$ref": "#/components/responses/ConfigurationTestsResponse"
+                  }
+                },
+                "security": [
+                  {
+                    "UserLambdaAuthorizer": []
+                  }
+                ],
+                "x-amazon-apigateway-integration": {
+                  "uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:apigateway:eu-central-1:lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "ConfigurationTestsLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  },
+                  "passthroughBehavior": "when_no_match",
+                  "credentials": {
+                    "Fn::GetAtt": [
+                      "VladTestsRole",
+                      "Arn"
+                    ]
+                  },
+                  "httpMethod": "POST",
+                  "type": "aws_proxy"
+                }
+              },
+              "options": {
+                "parameters": [
+                  {
+                    "name": "origin",
+                    "description": "",
+                    "schema": {
+                      "type": "string"
+                    },
+                    "in": "header"
+                  }
+                ],
+                "responses": {
+                  "200": {
+                    "headers": {
+                      "Access-Control-Allow-Origin": {
+                        "schema": {
+                          "type": "string"
+                        }
+                      },
+                      "Access-Control-Allow-Methods": {
+                        "schema": {
+                          "type": "string"
+                        }
+                      },
+                      "Access-Control-Allow-Headers": {
+                        "schema": {
+                          "type": "string"
+                        }
+                      },
+                      "Access-Control-Allow-Credentials": {
+                        "schema": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "description": "Default response for CORS method"
+                  }
+                },
+                "summary": "CORS preflight request",
+                "description": "The OPTIONS method invoked in a CORS preflight request",
+                "x-amazon-apigateway-integration": {
+                  "type": "mock",
+                  "passthroughBehavior": "never",
+                  "requestTemplates": {
+                    "application/json": "{\n  \"statusCode\" : 200\n}\n"
+                  },
+                  "responses": {
+                    "default": {
+                      "statusCode": "200",
+                      "responseParameters": {
+                        "method.response.header.Access-Control-Allow-Methods": "'GET, OPTIONS'",
+                        "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                      },
+                      "responseTemplates": {
+                        "application/json": "{}\n"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "components": {
+            "schemas": {
+              "ConfigurationTestsResponseModel": {
+                "description": "Configuration tests response model",
+                "required": [
+                  "Result"
+                ],
+                "type": "object",
+                "properties": {
+                  "Result": {
+                    "description": "Result",
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "responses": {
+              "ConfigurationTestsResponse": {
+                "content": {
+                  "application/json": {
+                    "schema": {
+                      "$ref": "#/components/schemas/ConfigurationTestsResponseModel"
+                    },
+                    "examples": {
+                      "ExportResponse example": {
+                        "value": {
+                          "result": "Configuration tests response result"
+                        }
+                      }
+                    }
+                  }
+                },
+                "description": "The response to a successful export"
+              }
+            },
+            "securitySchemes": {
+              "UserLambdaAuthorizer": {
+                "type": "apiKey",
+                "description": "auth desc",
+                "name": "Authorization",
+                "in": "header",
+                "x-amazon-apigateway-authtype": "oauth2",
+                "x-amazon-apigateway-authorizer": {
+                  "type": "token",
+                  "authorizerUri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:apigateway:eu-central-1:lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "UserAuthorizerLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  },
+                  "authorizerCredentials": {
+                    "Fn::GetAtt": [
+                      "VladTestsRole",
+                      "Arn"
+                    ]
+                  },
+                  "identityValidationExpression": "^(Bearer )[a-zA-Z0-9\\-_]+?\\.[a-zA-Z0-9\\-_]+?\\.([a-zA-Z0-9\\-_]+)$",
+                  "authorizerResultTtlInSeconds": 120
+                }
+              }
+            }
+          },
+          "x-amazon-apigateway-request-validators": {
+            "parameter": {
+              "validateRequestBody": false,
+              "validateRequestParameters": false
+            },
+            "body": {
+              "validateRequestBody": true,
+              "validateRequestParameters": false
+            }
+          }
+        },
+        "DisableExecuteApiEndpoint": true,
+        "EndpointConfiguration": {
+          "Types": [
+            "REGIONAL"
+          ]
+        }
+      },
+      "DependsOn": [
+        "VladTestsRole"
+      ]
+    },
+    "VladTestsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "VladTestsRole-vkh",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "apigateway.amazonaws.com"
+                ]
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "VladTestsPolicy-vkh",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::GetAtt": [
+                        "ConfigurationTestsLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    {
+                      "Fn::GetAtt": [
+                        "UserAuthorizerLambdaFunction",
+                        "Arn"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "VladTestsStage": {
+      "Type": "AWS::ApiGateway::Stage",
+      "Properties": {
+        "AccessLogSetting": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "VladTestsAccessLogGroup",
+              "Arn"
+            ]
+          },
+          "Format": "{ \"requestId\":\"$context.requestId\", \"ip\": \"$context.identity.sourceIp\", \"caller\":\"$context.identity.caller\", \"user\":\"$context.identity.user\",\"requestTime\":\"$context.requestTime\", \"httpMethod\":\"$context.httpMethod\",\"resourcePath\":\"$context.resourcePath\", \"status\":\"$context.status\",\"protocol\":\"$context.protocol\", \"responseLength\":\"$context.responseLength\" }"
+        },
+        "MethodSettings": [
+          {
+            "DataTraceEnabled": false,
+            "HttpMethod": "POST",
+            "LoggingLevel": "ERROR",
+            "ResourcePath": "/~1api~1v1~1exports",
+            "MetricsEnabled": false
+          }
+        ],
+        "StageName": "vkh",
+        "Description": "VladTests stage",
+        "RestApiId": {
+          "Ref": "VladTests"
+        },
+        "DeploymentId": {
+          "Ref": "VladTestsDeployment15"
+        }
+      },
+      "DependsOn": [
+        "VladTestsAccessLogGroup"
+      ]
+    },
+    "VladTestsDeployment15": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": {
+          "Ref": "VladTests"
+        },
+        "Description": "VladTests deployment"
+      }
+    },
+    "VladTestsAccessLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": {
+          "Fn::Join": [
+            "",
+            [
+              "API-Gateway-Access-Logs-VladTests_",
+              {
+                "Ref": "VladTests"
+              },
+              "/vkh"
+            ]
+          ]
+        },
+        "RetentioninDays": 7
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      },
+      "Export": {
+        "Name": "sls-Vlad-Tests-vkh-ServerlessDeploymentBucketName"
+      }
+    },
+    "RestApiId": {
+      "Value": {
+        "Ref": "VladTests"
+      }
+    },
+    "Region": {
+      "Value": "eu-central-1"
+    },
+    "StageName": {
+      "Value": {
+        "Ref": "VladTestsStage"
+      }
+    }
+  }
+}
